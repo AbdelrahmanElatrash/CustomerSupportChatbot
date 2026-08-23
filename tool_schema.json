@@ -1,0 +1,25 @@
+{
+  "name": "create_bug_report",
+  "description": "Creates a support bug report in DynamoDB from the user's technical issue.",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "description": {
+        "type": "string",
+        "description": "A clear description of the user's error or technical issue."
+      },
+      "stepsToReproduce": {
+        "type": "string",
+        "description": "The steps the user took before or when the issue occurred."
+      },
+      "environment": {
+        "type": "string",
+        "description": "Relevant environment details such as operating system, browser, device, application version, or configuration."
+      }
+    },
+    "required": [
+      "description"
+    ]
+  }
+}
+
