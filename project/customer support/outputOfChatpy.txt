@@ -1,0 +1,61 @@
+User: My application crashes whenever I upload a PDF.
+Got it. To help resolve this, I need a bit more information.
+
+Could you share the **steps to reproduce** the issue? That is, exactly what you do before the crash occurs when uploading a PDF. 
+
+For example:
+1. Open the application…
+2. Navigate to the upload section…
+3. Select a PDF file…
+4. Click “Upload”…
+5. The app crashes…
+
+Please provide these details.
+
+User: Open Documents, click Upload, select a PDF file, and the application crashes immediately.
+Thanks for the steps. One more detail needed:
+
+**What is your environment?**  
+Please share details such as:
+
+- Operating system (e.g., Windows 11, macOS Ventura, Linux)
+- Browser (if web app, e.g., Chrome v120, Firefox v119)
+- Device (e.g., desktop, iPad, Android phone)
+- Application version or build number (if known)
+
+This will help us pinpoint any platform-specific issues.
+
+User: Windows 11, Chrome 151, application version 2.4.1.
+
+[tool call]
+{'input': '{"description":"My application crashes whenever I upload a PDF.","stepsToReproduce":"Open Documents, click Upload, select a PDF file, and the application crashes immediately.","environment":"Windows 11, Chrome 151, application version 2.4.1"}'}
+Your bug report has been successfully created!
+
+**Ticket ID:** `aee5f0bf-a28d-45f2-b555-83b9515f984f`  
+**Status:** OPEN  
+
+Our engineering team will review this issue (PDF upload crash on Windows 11/Chrome 151, version 2.4.1) and work on a fix. You’ll receive updates here as progress is made. Thank you for reporting this.
+
+
+
+data dase record 
+{
+  "ticketId": {
+    "S": "aee5f0bf-a28d-45f2-b555-83b9515f984f"
+  },
+  "createdAt": {
+    "S": "2026-08-22T18:41:56.377522+00:00"
+  },
+  "description": {
+    "S": "My application crashes whenever I upload a PDF."
+  },
+  "environment": {
+    "S": "Windows 11, Chrome 151, application version 2.4.1"
+  },
+  "status": {
+    "S": "OPEN"
+  },
+  "stepsToReproduce": {
+    "S": "Open Documents, click Upload, select a PDF file, and the application crashes immediately."
+  }
+}

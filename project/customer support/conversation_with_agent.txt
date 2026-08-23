@@ -1,0 +1,58 @@
+agent conversation  
+
+user: My application crashes whenever I upload a PDF.
+
+assistant: Got it. To help resolve this, I need a bit more information.
+
+Could you share the **steps to reproduce** the issue? That is, exactly what you do to trigger the crash when uploading a PDF (e.g., UI buttons clicked, API endpoints called, any specific file size or content, etc.)?
+
+user: Open Documents, click Upload, select a PDF file, and the application crashes immediately.
+
+assistant: Thanks for the steps. One last piece of information needed: could you tell me the **environment** in which this occurs?
+
+Please share details such as:
+- Operating system (e.g., Windows 11, macOS Ventura)
+- Browser or runtime environment (e.g., Chrome 120, Node.js v18, iOS 17 Safari)
+- Application version or build number (if available)
+- Any relevant configuration (e.g., cloud environment, container setup)
+
+user: Windows 11, Chrome 151, application version 2.4.1.
+
+assistant: 
+
+```tooluse_l89vsOoVHfL0iWIaO5z1wB
+
+```
+
+Your bug report has been successfully created! 🎫
+
+**Ticket ID:** `d9a09ae7-8c9b-4e98-b7aa-87b3ccda1fdc`
+
+The support team will review the issue where your application crashes on PDF upload (Windows 11, Chrome 151, version 2.4.1) and will reach out with further guidance or a fix shortly.
+
+In the meantime, if you notice any additional patterns or error messages, feel free to share them and we’ll update the ticket accordingly.
+
+
+record in dynamoDB 
+{
+  "ticketId": {
+    "S": "d9a09ae7-8c9b-4e98-b7aa-87b3ccda1fdc"
+  },
+  "createdAt": {
+    "S": "2026-08-22T18:16:59.338366+00:00"
+  },
+  "description": {
+    "S": "My application crashes whenever I upload a PDF."
+  },
+  "environment": {
+    "S": "Windows 11, Chrome 151, application version 2.4.1."
+  },
+  "status": {
+    "S": "OPEN"
+  },
+  "stepsToReproduce": {
+    "S": "Open Documents, click Upload, select a PDF file, and the application crashes immediately."
+  }
+}
+
+

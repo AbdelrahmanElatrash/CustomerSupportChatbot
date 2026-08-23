@@ -1,0 +1,52 @@
+{
+  "flowInputNode": {
+    "nodeName": "FlowInputNode"
+  },
+  "tests": [
+    {
+      "id": "SUP-001",
+      "prompt": "The application crashes whenever I upload a PDF file. Steps to reproduce: Open the application, go to Documents, click Upload, select a PDF file. Environment: Windows 11, Chrome 151, application version 2.4.1.",
+      "expected": "The assistant should handle this as a technical support issue and create a support ticket. The response should confirm that the issue was recorded and provide the created ticket information."
+    },
+    {
+      "id": "SUP-002",
+      "prompt": "The application crashes immediately after I log in. I am using Windows 11 and Chrome. I have not yet identified the exact steps to reproduce the problem.",
+      "expected": "The assistant should treat this as a technical support issue and help collect the information required to create a support ticket. It should not invent missing details."
+    },
+    {
+      "id": "SUP-003",
+      "prompt": "The application is broken and I cannot continue working.",
+      "expected": "The assistant should classify this as a support issue and ask for the relevant details needed to understand and report the problem rather than inventing technical information."
+    },
+    {
+      "id": "QST-001",
+      "prompt": "What happens when a question is not covered by the FAQ?",
+      "expected": "The answer should state that when the question is not covered by the FAQ, the application directs the user to a support phone number."
+    },
+    {
+      "id": "QST-002",
+      "prompt": "How does the application handle questions that are not answered in the FAQ?",
+      "expected": "The answer should explain that unsupported FAQ questions are redirected to support through the support phone number."
+    },
+    {
+      "id": "QST-003",
+      "prompt": "Tell me what the application does if the FAQ does not contain an answer to my question.",
+      "expected": "The answer should be grounded in the knowledge base and explain that the user is directed to the support phone number when the FAQ does not cover the question."
+    },
+    {
+      "id": "OTH-001",
+      "prompt": "Can you recommend a restaurant in Dubai for dinner?",
+      "expected": "The system should not answer the restaurant question. It should explain that the request is outside the supported scope and direct the user to human support using the support phone number +971 800 123 4567."
+    },
+    {
+      "id": "OTH-002",
+      "prompt": "Hello, how are you?",
+      "expected": "The system should classify the request as outside the supported scope and direct the user to human support using the support phone number +971 800 123 4567 rather than attempting to answer as a general conversational assistant."
+    },
+    {
+      "id": "OTH-003",
+      "prompt": "Can you help me choose a movie to watch tonight?",
+      "expected": "The system should not answer the recommendation request. It should state that the request is outside the supported scope and direct the user to human support using the support phone number +971 800 123 4567."
+    }
+  ]
+}

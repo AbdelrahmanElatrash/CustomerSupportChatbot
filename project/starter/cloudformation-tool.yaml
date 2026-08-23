@@ -1,0 +1,193 @@
+# Auto-generated from cloudformation-tool-base.yaml — do not edit directly.
+# To regenerate: edit cloudformation-tool-base.yaml and create_bug_report.py,
+# then run:
+#   python generate_cloudformation_tool.py
+
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Bug report tool - DynamoDB table, Lambda function, and IAM role
+
+Resources:
+
+  BugReportsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub
+        - BugReports-${Suffix}
+        - Suffix: !Select [0, !Split ["-", !Select [2, !Split ["/", !Ref "AWS::StackId"]]]]
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: ticketId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: ticketId
+          KeyType: HASH
+
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub
+        - create-bug-report-role-${Suffix}
+        - Suffix: !Select [0, !Split ["-", !Select [2, !Split ["/", !Ref "AWS::StackId"]]]]
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: DynamoDBPutItem
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: dynamodb:PutItem
+                Resource: !GetAtt BugReportsTable.Arn
+
+  CreateBugReportFunction:
+    Type: AWS::Lambda::Function
+    DependsOn: LambdaExecutionRole
+    Properties:
+      FunctionName: !Sub
+        - create-bug-report-${Suffix}
+        - Suffix: !Select [0, !Split ["-", !Select [2, !Split ["/", !Ref "AWS::StackId"]]]]
+      Runtime: python3.12
+      Handler: index.lambda_handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref BugReportsTable
+      Code:
+        ZipFile: |
+          import json
+          import os
+          import uuid
+          from datetime import datetime, timezone
+
+          import boto3
+
+          table = boto3.resource("dynamodb").Table(os.environ["TABLE_NAME"])
+
+
+          def lambda_handler(event, context):
+              print("EVENT:", json.dumps(event, indent=2, default=str))
+              print("CONTEXT:", json.dumps(context_to_dict(context), indent=2, default=str))
+
+              # AgentCore Gateway passes tool inputs directly in the event.
+              description = str(event.get("description") or "").strip()
+              steps = str(event.get("stepsToReproduce") or "").strip()
+              environment = str(event.get("environment") or "").strip()
+
+              # AgentCore metadata is available through Lambda client context.
+              metadata = get_agentcore_metadata(context)
+
+              if not description:
+                  return {
+                      "success": False,
+                      "error": "Missing required field: description",
+                      "tool": metadata.get("tool_name"),
+                      "requestId": metadata.get("request_id"),
+                  }
+
+              ticket_id = str(uuid.uuid4())
+
+              item = {
+                  "ticketId": ticket_id,
+                  "description": description,
+                  "stepsToReproduce": steps,
+                  "environment": environment,
+                  "status": "OPEN",
+                  "createdAt": datetime.now(timezone.utc).isoformat(),
+              }
+
+              table.put_item(Item=item)
+
+              return {
+                  "success": True,
+                  "ticketId": ticket_id,
+                  "status": "OPEN",
+                  "message": "Support record created successfully.",
+                  "requestId": metadata.get("request_id"),
+              }
+
+
+          def get_agentcore_metadata(context):
+              """
+              AgentCore Gateway provides metadata through Lambda client context.
+              """
+              result = {}
+
+              try:
+                  custom = context.client_context.custom or {}
+
+                  result["message_version"] = custom.get(
+                      "bedrockAgentCoreMessageVersion"
+                  )
+                  result["request_id"] = custom.get(
+                      "bedrockAgentCoreAwsRequestId"
+                  )
+                  result["mcp_message_id"] = custom.get(
+                      "bedrockAgentCoreMcpMessageId"
+                  )
+                  result["gateway_id"] = custom.get(
+                      "bedrockAgentCoreGatewayId"
+                  )
+                  result["target_id"] = custom.get(
+                      "bedrockAgentCoreTargetId"
+                  )
+                  result["tool_name"] = custom.get(
+                      "bedrockAgentCoreToolName"
+                  )
+
+              except Exception as exc:
+                  print("Could not read AgentCore metadata:", str(exc))
+
+              return result
+
+
+          def context_to_dict(context):
+              """
+              Helper used only for logging/debugging.
+              """
+              result = {
+                  "function_name": getattr(context, "function_name", None),
+                  "function_version": getattr(context, "function_version", None),
+                  "invoked_function_arn": getattr(context, "invoked_function_arn", None),
+                  "memory_limit_in_mb": getattr(context, "memory_limit_in_mb", None),
+                  "aws_request_id": getattr(context, "aws_request_id", None),
+              }
+
+              try:
+                  result["client_context"] = {
+                      "custom": context.client_context.custom
+                      if context.client_context
+                      else None
+                  }
+              except Exception:
+                  result["client_context"] = None
+
+              return result
+
+
+
+  BedrockInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !GetAtt CreateBugReportFunction.Arn
+      Action: lambda:InvokeFunction
+      Principal: bedrock.amazonaws.com
+
+Outputs:
+  BugReportsTableArn:
+    Description: ARN of the BugReports DynamoDB table
+    Value: !GetAtt BugReportsTable.Arn
+
+  LambdaFunctionArn:
+    Description: ARN of the create-bug-report Lambda function
+    Value: !GetAtt CreateBugReportFunction.Arn
+
+  LambdaExecutionRoleArn:
+    Description: ARN of the Lambda execution IAM role
+    Value: !GetAtt LambdaExecutionRole.Arn

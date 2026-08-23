@@ -1,0 +1,210 @@
+AWSTemplateFormatVersion: '2010-09-09'
+
+Description: Bedrock Flow Lambda bridge for invoking AgentCore Harness
+
+Parameters:
+  HarnessArn:
+    Type: String
+    Default: arn:aws:bedrock-agentcore:us-east-1:479456215827:harness/support_agent_harness-iKFKxhZY2C
+
+Resources:
+
+  InvokeSupportHarnessRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub
+        - invoke-support-harness-role-${Suffix}
+        - Suffix: !Select [0, !Split ["-", !Select [2, !Split ["/", !Ref "AWS::StackId"]]]]
+
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - sts:AssumeRole
+
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+
+      Policies:
+        - PolicyName: InvokeAgentCoreHarness
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - bedrock-agentcore:InvokeHarness
+                  - bedrock-agentcore:InvokeAgentRuntime
+                Resource: !Ref HarnessArn
+
+  InvokeSupportHarnessFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub
+        - invoke-support-harness-${Suffix}
+        - Suffix: !Select [0, !Split ["-", !Select [2, !Split ["/", !Ref "AWS::StackId"]]]]
+
+      Runtime: python3.12
+      Handler: index.lambda_handler
+      Role: !GetAtt InvokeSupportHarnessRole.Arn
+      Timeout: 60
+
+      Environment:
+        Variables:
+          HARNESS_ARN: !Ref HarnessArn
+
+      Code:
+        ZipFile: |
+          import json
+          import os
+          import uuid
+
+          import boto3
+
+          agentcore = boto3.client("bedrock-agentcore")
+
+          HARNESS_ARN = os.environ["HARNESS_ARN"]
+
+
+          def lambda_handler(event, context):
+              print("FLOW EVENT:")
+              print(json.dumps(event, indent=2, default=str))
+
+              user_message = extract_user_message(event)
+
+              if not user_message:
+                  return {
+                      "error": "Missing user input"
+                  }
+
+              # runtimeSessionId must be at least 33 characters.
+              runtime_session_id = build_session_id(
+                  event,
+                  context.aws_request_id
+              )
+
+              response = agentcore.invoke_harness(
+                  harnessArn=HARNESS_ARN,
+                  runtimeSessionId=runtime_session_id,
+                  messages=[
+                      {
+                          "role": "user",
+                          "content": [
+                              {
+                                  "text": user_message
+                              }
+                          ]
+                      }
+                  ]
+              )
+
+              result = extract_harness_response(response)
+
+              print("HARNESS RESULT:")
+              print(json.dumps(result, indent=2, default=str))
+
+              return result
+
+
+          def extract_user_message(event):
+              """
+              Bedrock Flow Lambda input:
+              event.node.inputs[].value contains the resolved input.
+              """
+
+              node = event.get("node") or {}
+              inputs = node.get("inputs") or []
+
+              for item in inputs:
+                  name = item.get("name")
+
+                  if name in ("input", "userInput", "message"):
+                      value = item.get("value")
+
+                      if isinstance(value, str):
+                          return value.strip()
+
+                      return str(value)
+
+              # Fallback: use the first input.
+              if inputs:
+                  value = inputs[0].get("value")
+
+                  if isinstance(value, str):
+                      return value.strip()
+
+                  return str(value)
+
+              return None
+
+
+          def build_session_id(event, request_id):
+              """
+              The initial PoC uses a new session per Flow invocation.
+              """
+
+              flow = event.get("flow") or {}
+              flow_arn = flow.get("flowArn", "flow")
+
+              safe_flow = "".join(
+                  c if c.isalnum() or c in "-_" else "-"
+                  for c in flow_arn
+              )
+
+              session_id = f"{safe_flow}-{request_id}-{uuid.uuid4()}"
+
+              return session_id[:100]
+
+
+          def extract_harness_response(response):
+              """
+              Convert the InvokeHarness response into a simple
+              object that the Flow Lambda node can return.
+              """
+
+              result = {
+                  "success": True,
+                  "response": ""
+              }
+
+              # The SDK response contains response content depending
+              # on the Harness/model response format.
+              content = response.get("output") or response.get("content")
+
+              if isinstance(content, str):
+                  result["response"] = content
+                  return result
+
+              if isinstance(content, list):
+                  texts = []
+
+                  for item in content:
+                      if isinstance(item, dict):
+                          text = item.get("text")
+
+                          if text:
+                              texts.append(str(text))
+
+                  result["response"] = "\n".join(texts)
+                  return result
+
+              # Preserve raw response as a fallback for debugging.
+              result["response"] = json.dumps(
+                  response,
+                  default=str
+              )
+
+              return result
+
+Outputs:
+
+  LambdaFunctionArn:
+    Description: ARN of the Bedrock Flow to AgentCore Harness bridge Lambda
+    Value: !GetAtt InvokeSupportHarnessFunction.Arn
+
+  LambdaExecutionRoleArn:
+    Description: Execution role ARN
+    Value: !GetAtt InvokeSupportHarnessRole.Arn
